@@ -11,17 +11,17 @@ import XCTest
 import JSONSchema
 
 func fixture(named:String, forObject:AnyObject) -> NSData {
-  let bundle = NSBundle(forClass:object_getClass(forObject))
-  let path = bundle.URLForResource(named, withExtension: nil)!
-  let data = NSData(contentsOfURL: path)!
+  let bundle = Bundle(for:object_getClass(forObject))
+  let path = bundle.url(forResource: named, withExtension: nil)!
+  let data = NSData(contentsOf: path)!
   return data
 }
 
 func JSONFixture(named:String, forObject:AnyObject) -> [[String:AnyObject]] {
-  let data = fixture(named, forObject: forObject)
-  let object: AnyObject?
+  let data = fixture(named: named, forObject: forObject)
+  let object: Any
   do {
-    object = try NSJSONSerialization.JSONObjectWithData(data, options: NSJSONReadingOptions(rawValue: 0))
+    object = try JSONSerialization.jsonObject(with: data as Data, options: JSONSerialization.ReadingOptions(rawValue: 0))
   } catch {
     fatalError()
   }
@@ -30,9 +30,9 @@ func JSONFixture(named:String, forObject:AnyObject) -> [[String:AnyObject]] {
 
 class JSONSchemaCases: XCTestCase {
   func testEverything() {
-    let bundle = NSBundle(forClass: JSONSchemaCases.self)
-    let fileManager = NSFileManager.defaultManager()
-    let files = fileManager.enumeratorAtPath(bundle.resourcePath!)!.allObjects as! [String]
+    let bundle = Bundle(for: JSONSchemaCases.self)
+    let fileManager = FileManager.default
+    let files = fileManager.enumerator(atPath: bundle.resourcePath!)!.allObjects as! [String]
     let suites = files.filter { (path) -> Bool in
       let blacklist = [
         "ref.json",
@@ -47,13 +47,13 @@ class JSONSchemaCases: XCTestCase {
     }
 
     let cases = suites.map { (file) -> [Case] in
-      let suite = JSONFixture(file, forObject: self)
-      return suite.map(makeCase(file))
+      let suite = JSONFixture(named: file, forObject: self)
+      return suite.map(makeCase(filename: file))
     }
 
-    let flatCases = cases.reduce([Case](), combine: +)
+    let flatCases = cases.reduce([Case](), +)
     for c in flatCases {
-      for (name, assertion) in makeAssertions(c) {
+      for (name, assertion) in makeAssertions(c: c) {
         // TODO: Improve testing
         print(name)
         assertion()
@@ -90,12 +90,12 @@ struct Case {
   }
 }
 
-func makeCase(filename: String) -> (object: [String:AnyObject]) -> Case {
+func makeCase(filename: String) -> (_ object: [String:AnyObject]) -> Case {
   return { object in
     let description = object["description"] as! String
     let schema = object["schema"] as! [String:AnyObject]
     let tests = (object["tests"] as! [[String: AnyObject]]).map(makeTest)
-    let caseName = (filename as NSString).stringByDeletingPathExtension
+    let caseName = (filename as NSString).deletingPathExtension
     return Case(description: "\(caseName) \(description)", schema: schema, tests: tests)
   }
 }
@@ -107,9 +107,9 @@ func makeAssertions(c:Case) -> ([Assertion]) {
     return ("\(c.description) \(test.description)", {
       let result = validate(test.data, schema: c.schema)
       switch result {
-      case .Valid:
+      case .valid:
         XCTAssertEqual(result.valid, test.value, "Result is valid")
-      case .Invalid(let errors):
+      case .invalid(let errors):
         XCTAssertEqual(result.valid, test.value, "Failed validation: \(errors)")
       }
     })
