@@ -17,9 +17,9 @@ class JSONSchemaTests: XCTestCase {
     super.setUp()
 
     schema = Schema([
-      "title": "Product" as AnyObject,
-      "description": "A product from Acme's catalog" as AnyObject,
-      "type": "object" as AnyObject,
+      "title": "Product" as Any,
+      "description": "A product from Acme's catalog" as Any,
+      "type": "object" as Any,
     ])
   }
 
@@ -36,24 +36,24 @@ class JSONSchemaTests: XCTestCase {
   }
 
   func testSuccessfulValidation() {
-    XCTAssertTrue(schema.validate([String:AnyObject]() as AnyObject).valid)
+    XCTAssertTrue(schema.validate([String:Any]() as Any).valid)
   }
 
   func testUnsuccessfulValidation() {
-    XCTAssertFalse(schema.validate([String]() as AnyObject).valid)
+    XCTAssertFalse(schema.validate([String]() as Any).valid)
   }
 
   func testReadme() {
     let schema = Schema([
-      "type": "object" as AnyObject,
+      "type": "object" as Any,
       "properties": [
         "name": ["type": "string"],
         "price": ["type": "number"],
-      ] as AnyObject,
-      "required": ["name"] as AnyObject,
+      ] as Any,
+      "required": ["name"] as Any,
     ])
 
-    XCTAssertTrue(schema.validate(["name": "Eggs", "price": 34.99] as AnyObject).valid)
-    XCTAssertFalse(schema.validate(["price": 34.99] as AnyObject).valid)
+    XCTAssertTrue(schema.validate(["name": "Eggs", "price": 34.99] as Any).valid)
+    XCTAssertFalse(schema.validate(["price": 34.99] as Any).valid)
   }
 }

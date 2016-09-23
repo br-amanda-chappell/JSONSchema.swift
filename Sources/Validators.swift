@@ -32,8 +32,8 @@ public enum ValidationResult {
   }
 }
 
-typealias LegacyValidator = (AnyObject) -> (Bool)
-typealias Validator = (AnyObject) -> (ValidationResult)
+typealias LegacyValidator = (Any) -> (Bool)
+typealias Validator = (Any) -> (ValidationResult)
 
 /// Flatten an array of results into a single result (combining all errors)
 func flatten(_ results:[ValidationResult]) -> ValidationResult {
@@ -54,12 +54,12 @@ func flatten(_ results:[ValidationResult]) -> ValidationResult {
 }
 
 /// Creates a Validator which always returns an valid result
-func validValidation(_ value:AnyObject) -> ValidationResult {
+func validValidation(_ value:Any) -> ValidationResult {
   return .valid
 }
 
 /// Creates a Validator which always returns an invalid result with the given error
-func invalidValidation(_ error: String) -> (_ value: AnyObject) -> ValidationResult {
+func invalidValidation(_ error: String) -> (_ value: Any) -> ValidationResult {
   return { value in
     return .invalid([error])
   }
@@ -68,7 +68,7 @@ func invalidValidation(_ error: String) -> (_ value: AnyObject) -> ValidationRes
 // MARK: Shared
 
 /// Validate the given value is of the given type
-func validateType(_ type: String) -> (_ value: AnyObject) -> ValidationResult {
+func validateType(_ type: String) -> (_ value: Any) -> ValidationResult {
   return { value in
     switch type {
     case "integer":
@@ -119,7 +119,7 @@ func validateType(_ type:[String]) -> Validator {
   return anyOf(typeValidators)
 }
 
-func validateType(_ type:AnyObject) -> Validator {
+func validateType(_ type:Any) -> Validator {
   if let type = type as? String {
     return validateType(type)
   } else if let types = type as? [String] {
@@ -131,7 +131,7 @@ func validateType(_ type:AnyObject) -> Validator {
 
 
 /// Validate that a value is valid for any of the given validation rules
-func anyOf(_ validators:[Validator], error:String? = nil) -> (_ value: AnyObject) -> ValidationResult {
+func anyOf(_ validators:[Validator], error:String? = nil) -> (_ value: Any) -> ValidationResult {
   return { value in
     for validator in validators {
       let result = validator(value)
@@ -148,7 +148,7 @@ func anyOf(_ validators:[Validator], error:String? = nil) -> (_ value: AnyObject
   }
 }
 
-func oneOf(_ validators: [Validator]) -> (_ value: AnyObject) -> ValidationResult {
+func oneOf(_ validators: [Validator]) -> (_ value: Any) -> ValidationResult {
   return { value in
     let results = validators.map { validator in validator(value) }
     let validValidators = results.filter { $0.valid }.count
@@ -162,7 +162,7 @@ func oneOf(_ validators: [Validator]) -> (_ value: AnyObject) -> ValidationResul
 }
 
 /// Creates a validator that validates that the given validation rules are not met
-func not(_ validator: @escaping Validator) -> (_ value: AnyObject) -> ValidationResult {
+func not(_ validator: @escaping Validator) -> (_ value: Any) -> ValidationResult {
   return { value in
     if validator(value).valid {
       return .invalid(["'\(value)' does not match 'not' validation."])
@@ -172,13 +172,13 @@ func not(_ validator: @escaping Validator) -> (_ value: AnyObject) -> Validation
   }
 }
 
-func allOf(_ validators: [Validator]) -> (_ value: AnyObject) -> ValidationResult {
+func allOf(_ validators: [Validator]) -> (_ value: Any) -> ValidationResult {
   return { value in
     return flatten(validators.map { validator in validator(value) })
   }
 }
 
-func validateEnum(_ values: [AnyObject]) -> (_ value: AnyObject) -> ValidationResult {
+func validateEnum(_ values: [Any]) -> (_ value: Any) -> ValidationResult {
   return { value in
     if (values as! [NSObject]).contains(value as! NSObject) {
       return .valid
@@ -190,7 +190,7 @@ func validateEnum(_ values: [AnyObject]) -> (_ value: AnyObject) -> ValidationRe
 
 // MARK: String
 
-func validateLength(_ comparitor: @escaping ((Int, Int) -> (Bool)), length: Int, error: String) -> (_ value: AnyObject) -> ValidationResult {
+func validateLength(_ comparitor: @escaping ((Int, Int) -> (Bool)), length: Int, error: String) -> (_ value: Any) -> ValidationResult {
   return { value in
     if let value = value as? String {
       if !comparitor(value.characters.count, length) {
@@ -202,7 +202,7 @@ func validateLength(_ comparitor: @escaping ((Int, Int) -> (Bool)), length: Int,
   }
 }
 
-func validatePattern(_ pattern: String) -> (_ value: AnyObject) -> ValidationResult {
+func validatePattern(_ pattern: String) -> (_ value: Any) -> ValidationResult {
   return { value in
     if let value = value as? String {
       let expression = try? NSRegularExpression(pattern: pattern, options: NSRegularExpression.Options(rawValue: 0))
@@ -222,7 +222,7 @@ func validatePattern(_ pattern: String) -> (_ value: AnyObject) -> ValidationRes
 
 // MARK: Numerical
 
-func validateMultipleOf(_ number: Double) -> (_ value: AnyObject) -> ValidationResult {
+func validateMultipleOf(_ number: Double) -> (_ value: Any) -> ValidationResult {
   return { value in
     if number > 0.0 {
       if let value = value as? Double {
@@ -237,7 +237,7 @@ func validateMultipleOf(_ number: Double) -> (_ value: AnyObject) -> ValidationR
   }
 }
 
-func validateNumericLength(_ length: Double, comparitor: @escaping ((Double, Double) -> (Bool)), exclusiveComparitor: @escaping ((Double, Double) -> (Bool)), exclusive: Bool?, error: String) -> (_ value: AnyObject) -> ValidationResult {
+func validateNumericLength(_ length: Double, comparitor: @escaping ((Double, Double) -> (Bool)), exclusiveComparitor: @escaping ((Double, Double) -> (Bool)), exclusive: Bool?, error: String) -> (_ value: Any) -> ValidationResult {
   return { value in
     if let value = value as? Double {
       if exclusive ?? false {
@@ -257,9 +257,9 @@ func validateNumericLength(_ length: Double, comparitor: @escaping ((Double, Dou
 
 // MARK: Array
 
-func validateArrayLength(_ rhs: Int, comparitor: @escaping ((Int, Int) -> Bool), error: String) -> (_ value: AnyObject) -> ValidationResult {
+func validateArrayLength(_ rhs: Int, comparitor: @escaping ((Int, Int) -> Bool), error: String) -> (_ value: Any) -> ValidationResult {
   return { value in
-    if let value = value as? [AnyObject] {
+    if let value = value as? [Any] {
       if !comparitor(value.count, rhs) {
         return .invalid([error])
       }
@@ -269,8 +269,8 @@ func validateArrayLength(_ rhs: Int, comparitor: @escaping ((Int, Int) -> Bool),
   }
 }
 
-func validateUniqueItems(_ value: AnyObject) -> ValidationResult {
-  if let value = value as? [AnyObject] {
+func validateUniqueItems(_ value: Any) -> ValidationResult {
+  if let value = value as? [Any] {
     // 1 and true, 0 and false are isEqual for NSNumber's, so logic to count for that below
 
     func isBoolean(_ number:NSNumber) -> Bool {
@@ -297,9 +297,9 @@ func validateUniqueItems(_ value: AnyObject) -> ValidationResult {
 
 // MARK: Object
 
-func validatePropertiesLength(_ length: Int, comparitor: @escaping ((Int, Int) -> (Bool)), error: String) -> (_ value: AnyObject)  -> ValidationResult {
+func validatePropertiesLength(_ length: Int, comparitor: @escaping ((Int, Int) -> (Bool)), error: String) -> (_ value: Any)  -> ValidationResult {
   return { value in
-    if let value = value as? [String:AnyObject] {
+    if let value = value as? [String:Any] {
       if !comparitor(length, value.count) {
         return .invalid([error])
       }
@@ -309,9 +309,9 @@ func validatePropertiesLength(_ length: Int, comparitor: @escaping ((Int, Int) -
   }
 }
 
-func validateRequired(_ required: [String]) -> (_ value: AnyObject)  -> ValidationResult {
+func validateRequired(_ required: [String]) -> (_ value: Any)  -> ValidationResult {
   return { value in
-    if let value = value as? [String:AnyObject] {
+    if let value = value as? [String:Any] {
       if (required.filter { r in !value.keys.contains(r) }.count == 0) {
         return .valid
       }
@@ -323,9 +323,9 @@ func validateRequired(_ required: [String]) -> (_ value: AnyObject)  -> Validati
   }
 }
 
-func validateProperties(_ properties: [String:Validator]?, patternProperties: [String:Validator]?, additionalProperties: Validator?) -> (_ value: AnyObject) -> ValidationResult {
+func validateProperties(_ properties: [String:Validator]?, patternProperties: [String:Validator]?, additionalProperties: Validator?) -> (_ value: Any) -> ValidationResult {
   return { value in
-    if let value = value as? [String:AnyObject] {
+    if let value = value as? [String:Any] {
       let allKeys = NSMutableSet()
       var results = [ValidationResult]()
 
@@ -333,7 +333,7 @@ func validateProperties(_ properties: [String:Validator]?, patternProperties: [S
         for (key, validator) in properties {
           allKeys.add(key)
 
-          if let value: AnyObject = value[key] {
+          if let value: Any = value[key] {
             results.append(validator(value))
           }
         }
@@ -367,11 +367,11 @@ func validateProperties(_ properties: [String:Validator]?, patternProperties: [S
   }
 }
 
-func validateDependency(_ key: String, validator: @escaping LegacyValidator) -> (_ value: AnyObject) -> Bool {
+func validateDependency(_ key: String, validator: @escaping LegacyValidator) -> (_ value: Any) -> Bool {
   return { value in
-    if let value = value as? [String:AnyObject] {
+    if let value = value as? [String:Any] {
       if (value[key] != nil) {
-        return validator(value as AnyObject)
+        return validator(value as Any)
       }
     }
 
@@ -379,9 +379,9 @@ func validateDependency(_ key: String, validator: @escaping LegacyValidator) -> 
   }
 }
 
-func validateDependencies(_ key: String, dependencies: [String]) -> (_ value: AnyObject) -> Bool {
+func validateDependencies(_ key: String, dependencies: [String]) -> (_ value: Any) -> Bool {
   return { value in
-    if let value = value as? [String:AnyObject] {
+    if let value = value as? [String:Any] {
       if (value[key] != nil) {
         for dependency in dependencies {
           if (value[dependency] == nil) {
@@ -397,7 +397,7 @@ func validateDependencies(_ key: String, dependencies: [String]) -> (_ value: An
 
 // MARK: Format
 
-func validateIPv4(_ value:AnyObject) -> ValidationResult {
+func validateIPv4(_ value:Any) -> ValidationResult {
   if let ipv4 = value as? String {
     if let expression = try? NSRegularExpression(pattern: "^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$", options: NSRegularExpression.Options(rawValue: 0)) {
       if expression.matches(in: ipv4, options: NSRegularExpression.MatchingOptions(rawValue: 0), range: NSMakeRange(0, ipv4.characters.count)).count == 1 {
@@ -411,7 +411,7 @@ func validateIPv4(_ value:AnyObject) -> ValidationResult {
   return .valid
 }
 
-func validateIPv6(_ value:AnyObject) -> ValidationResult {
+func validateIPv6(_ value:Any) -> ValidationResult {
   if let ipv6 = value as? String {
     var buf = UnsafeMutableRawPointer.allocate(bytes: Int(INET6_ADDRSTRLEN), alignedTo: MemoryLayout<String>.alignment)
     if inet_pton(AF_INET6, ipv6, &buf) == 1 {

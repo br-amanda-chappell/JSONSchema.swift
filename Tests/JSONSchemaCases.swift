@@ -10,14 +10,14 @@ import Foundation
 import XCTest
 import JSONSchema
 
-func fixture(named:String, forObject:AnyObject) -> NSData {
+func fixture(named:String, forObject:Any) -> NSData {
   let bundle = Bundle(for:object_getClass(forObject))
   let path = bundle.url(forResource: named, withExtension: nil)!
   let data = NSData(contentsOf: path)!
   return data
 }
 
-func JSONFixture(named:String, forObject:AnyObject) -> [[String:AnyObject]] {
+func JSONFixture(named:String, forObject:Any) -> [[String:Any]] {
   let data = fixture(named: named, forObject: forObject)
   let object: Any
   do {
@@ -25,7 +25,7 @@ func JSONFixture(named:String, forObject:AnyObject) -> [[String:AnyObject]] {
   } catch {
     fatalError()
   }
-  return object as! [[String:AnyObject]]
+  return object as! [[String:Any]]
 }
 
 class JSONSchemaCases: XCTestCase {
@@ -64,37 +64,37 @@ class JSONSchemaCases: XCTestCase {
 
 struct Test {
   let description:String
-  let data:AnyObject
+  let data:Any
   let value:Bool
 
-  init(description:String, data:AnyObject, value:Bool) {
+  init(description:String, data:Any, value:Bool) {
     self.description = description
     self.data = data
     self.value = value
   }
 }
 
-func makeTest(object:[String:AnyObject]) -> Test {
-  return Test(description: object["description"] as! String, data: object["data"] as AnyObject!, value: object["valid"] as! Bool)
+func makeTest(object:[String:Any]) -> Test {
+  return Test(description: object["description"] as! String, data: object["data"] as Any!, value: object["valid"] as! Bool)
 }
 
 struct Case {
   let description:String
-  let schema:[String:AnyObject]
+  let schema:[String:Any]
   let tests:[Test]
 
-  init(description:String, schema:[String:AnyObject], tests:[Test]) {
+  init(description:String, schema:[String:Any], tests:[Test]) {
     self.description = description
     self.schema = schema
     self.tests = tests
   }
 }
 
-func makeCase(filename: String) -> (_ object: [String:AnyObject]) -> Case {
+func makeCase(filename: String) -> (_ object: [String:Any]) -> Case {
   return { object in
     let description = object["description"] as! String
-    let schema = object["schema"] as! [String:AnyObject]
-    let tests = (object["tests"] as! [[String: AnyObject]]).map(makeTest)
+    let schema = object["schema"] as! [String:Any]
+    let tests = (object["tests"] as! [[String:Any]]).map(makeTest)
     let caseName = (filename as NSString).deletingPathExtension
     return Case(description: "\(caseName) \(description)", schema: schema, tests: tests)
   }
